@@ -1,11 +1,15 @@
 """
-Base contract for all RedVector attack modules.
+Base contract for all AgentProbe attack modules.
 
 Every attack (prompt injection, jailbreak, RAG poisoning, ...) subclasses
 `Attack` and implements two things:
 
   - generate_payloads(): produce the list of test cases to run
   - evaluate(): decide whether a given response means the attack succeeded
+
+This is deliberately data-driven: payloads live in YAML files under
+`payloads/`, not hardcoded in Python, so growing the attack library later
+is a content problem, not a code problem.
 """
 
 from abc import ABC, abstractmethod
@@ -20,6 +24,9 @@ class Payload:
     id: str
     category: str
     prompt: str
+    # What "success" looks like from the attacker's point of view, e.g. a
+    # marker string the model should never say, or a behavior it should
+    # never perform. Used by evaluate() to score the response.
     target_behavior: str
     metadata: dict[str, Any] = field(default_factory=dict)
 

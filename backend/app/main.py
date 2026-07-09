@@ -1,5 +1,10 @@
 """
 FastAPI entrypoint.
+
+Phase 1 exposes exactly one endpoint: POST /campaigns, which runs every
+registered attack against a target model and returns the scored results.
+More attack modules register themselves in ATTACK_REGISTRY below — the
+endpoint doesn't change as the library grows.
 """
 
 import logging
@@ -7,16 +12,20 @@ import logging
 from fastapi import FastAPI, HTTPException
 
 from app import db, orchestrator
+from app.attacks.jailbreak import JailbreakAttack
 from app.attacks.prompt_injection import PromptInjectionAttack
+from app.attacks.rag_poisoning import RagPoisoningAttack
 from app.models import CampaignRequest, CampaignResponse, CategoryScore, ResultOut
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="AgentProbe", version="0.1.0")
 
-# Attack Modules
+# Register attack modules here as they're built.
 ATTACK_REGISTRY = {
     "prompt_injection": PromptInjectionAttack(),
+    "jailbreak": JailbreakAttack(),
+    "rag_poisoning": RagPoisoningAttack(),
 }
 
 
@@ -30,7 +39,6 @@ def health() -> dict:
     return {"status": "ok", "registered_attacks": list(ATTACK_REGISTRY.keys())}
 
 
-# Runs every registered attack against a target model and returns the scored results.
 @app.post("/campaigns", response_model=CampaignResponse)
 def create_campaign(req: CampaignRequest) -> CampaignResponse:
     categories = req.categories or list(ATTACK_REGISTRY.keys())
