@@ -1,13 +1,15 @@
 """
 The orchestrator ties everything together: for each registered attack,
 generate its payloads, fire each one at the target model through LiteLLM,
-evaluate the response, and persist the result. This is the only file that
-needs to know about all three of Attack, llm_client, and db.
+evaluate the response (both the attack's own verdict and the Phase 3
+response-quality evaluator), and persist the result. This is the only
+file that needs to know about Attack, llm_client, evaluator, and db all
+at once.
 """
 
 import logging
 
-from app import db
+from app import config, db, evaluator
 from app.attacks.base import Attack, AttackResult
 from app.llm_client import get_completion
 
@@ -18,12 +20,18 @@ def run_campaign(
     target_model: str,
     attacks: list[Attack],
     system_prompt: str | None = None,
+    use_judge: bool | None = None,
 ) -> tuple[str, list[AttackResult]]:
     """Run every payload from every given attack against target_model.
 
     Returns the campaign_id and the flat list of AttackResults (already
-    persisted to SQLite).
+    persisted to SQLite). Each result's metadata is enriched with
+    relevance_score, refusal_detected, and judge_followed_injection from
+    the Phase 3 evaluator.
     """
+    if use_judge is None:
+        use_judge = config.USE_JUDGE_DEFAULT
+
     campaign_id = db.create_campaign(target_model)
     all_results: list[AttackResult] = []
 
@@ -39,6 +47,10 @@ def run_campaign(
                 response = f"[ERROR calling target model: {exc}]"
 
             result = attack.evaluate(payload, response)
+
+            metrics = evaluator.evaluate(payload, response, use_judge=use_judge)
+            result.metadata.update(metrics.as_dict())
+
             db.save_result(campaign_id, result)
             all_results.append(result)
 

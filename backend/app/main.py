@@ -1,14 +1,13 @@
 """
 FastAPI entrypoint.
 
-Phase 1 exposes exactly one endpoint: POST /campaigns, which runs every
-registered attack against a target model and returns the scored results.
-More attack modules register themselves in ATTACK_REGISTRY below — the
-endpoint doesn't change as the library grows.
+Exposes POST /campaigns, which runs every registered attack against a
+target model and returns the scored + evaluator-enriched results.
 """
 
 import logging
 
+from app import config
 from fastapi import FastAPI, HTTPException
 
 from app import db, orchestrator
@@ -52,6 +51,7 @@ def create_campaign(req: CampaignRequest) -> CampaignResponse:
         target_model=req.target_model,
         attacks=attacks,
         system_prompt=req.system_prompt,
+        use_judge=req.use_judge,
     )
     scores = orchestrator.score_by_category(results)
 
@@ -67,6 +67,10 @@ def create_campaign(req: CampaignRequest) -> CampaignResponse:
                 vulnerable=r.vulnerable,
                 confidence=r.confidence,
                 evidence=r.evidence,
+                relevance_score=r.metadata.get("relevance_score"),
+                refusal_detected=r.metadata.get("refusal_detected"),
+                judge_followed_injection=r.metadata.get("judge_followed_injection"),
+                judge_reasoning=r.metadata.get("judge_reasoning"),
             )
             for r in results
         ],

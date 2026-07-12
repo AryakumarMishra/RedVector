@@ -1,9 +1,10 @@
 """
-Thin wrapper around LiteLLM so the rest of RedVector depends on one
-function, not the litellm SDK directly. If swapping in a custom HTTP
+Thin wrapper around LiteLLM so the rest of AgentProbe depends on one
+function, not the litellm SDK directly. If you swap in a custom HTTP
 client later, this is the only file that changes.
 """
 
+from app import config
 import litellm
 
 
