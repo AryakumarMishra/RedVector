@@ -7,7 +7,7 @@ os.environ directly, without needing to think about *when* .env gets loaded.
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "groq/llama-3.1-8b-instant")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")

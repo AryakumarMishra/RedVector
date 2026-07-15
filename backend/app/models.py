@@ -29,6 +29,13 @@ class CategoryScore(BaseModel):
     vulnerability_score: float  # vulnerable / total, 0.0-1.0
 
 
+class CampaignSummary(BaseModel):
+    campaign_id: str
+    target_model: str
+    created_at: str
+    scores: list[CategoryScore]
+
+
 class CampaignResponse(BaseModel):
     campaign_id: str
     target_model: str

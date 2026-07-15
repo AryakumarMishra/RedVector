@@ -95,3 +95,20 @@ def get_campaign_results(campaign_id: str) -> list[dict]:
             "SELECT * FROM results WHERE campaign_id = ?", (campaign_id,)
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def get_campaign(campaign_id: str) -> dict | None:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM campaigns WHERE id = ?", (campaign_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def list_campaigns() -> list[dict]:
+    """Campaign history for the dashboard's landing view, most recent first."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM campaigns ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(row) for row in rows]
