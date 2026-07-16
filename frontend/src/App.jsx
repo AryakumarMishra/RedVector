@@ -66,7 +66,7 @@ export default function App() {
     >
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px" }}>
         <header style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>AgentProbe</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>RedVector</h1>
           <p style={{ color: "#9a9aa2", fontSize: 14, marginTop: 4 }}>
             Adversarial testing dashboard for LLM applications
           </p>

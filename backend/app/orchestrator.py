@@ -13,7 +13,7 @@ from app import config, db, evaluator
 from app.attacks.base import Attack, AttackResult
 from app.llm_client import get_completion
 
-logger = logging.getLogger("agentprobe.orchestrator")
+logger = logging.getLogger("redvector.orchestrator")
 
 
 def run_campaign(

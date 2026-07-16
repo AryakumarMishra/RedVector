@@ -12,3 +12,10 @@ load_dotenv(override=True)
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "groq/llama-3.1-8b-instant")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 USE_JUDGE_DEFAULT = os.getenv("USE_JUDGE_DEFAULT", "true").lower() == "true"
+
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]

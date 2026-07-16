@@ -1,5 +1,5 @@
 """
-Response quality evaluator — Phase 3.
+Response quality evaluator.
 
 Every attack module already produces a `vulnerable` verdict via marker
 matching (cheap, deterministic, but blunt — it can't tell "the model
@@ -18,7 +18,7 @@ independent signals on top, without replacing that verdict:
     the attack prompt back to explain why it's refusing.
 
 These are stored as extra fields on the result rather than overriding
-`vulnerable` — Phase 4's dashboard can surface them as supporting evidence
+`vulnerable` dashboard can surface them as supporting evidence
 without any upstream module needing to change.
 """
 
@@ -31,7 +31,7 @@ from app import config
 from app.attacks.base import Payload
 from app.llm_client import get_completion
 
-logger = logging.getLogger("agentprobe.evaluator")
+logger = logging.getLogger("redvector.evaluator")
 
 REFUSAL_PHRASES = [
     "i cannot",

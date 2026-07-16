@@ -14,7 +14,7 @@ from pathlib import Path
 
 from app.attacks.base import AttackResult
 
-DB_PATH = Path(__file__).resolve().parent.parent / "agentprobe.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "redvector.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS campaigns (

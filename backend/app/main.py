@@ -38,13 +38,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AgentProbe", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="RedVector", version="0.1.0", lifespan=lifespan)
 
 # React dev server (Vite default) needs CORS to call this API directly.
 # Wide open for local dev only — tighten this before deploying anywhere public.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=config.ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,5 +1,5 @@
 """
-Base contract for all AgentProbe attack modules.
+Base contract for all RedVector attack modules.
 
 Every attack (prompt injection, jailbreak, RAG poisoning, ...) subclasses
 `Attack` and implements two things:
