@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Non-root user — good practice regardless of platform, and required by some.
-RUN useradd -m -u 1000 agentprobe && chown -R agentprobe:agentprobe /app
-USER agentprobe
+RUN useradd -m -u 1000 redvector && chown -R redvector:redvector /app
+USER redvector
 
 ENV PORT=8000
 EXPOSE $PORT
