@@ -55,7 +55,7 @@ A few choices that shaped the codebase, and why:
 
 - **Free-tier-first, by default.** The judge model defaults to a free Groq model, embeddings run locally via `sentence-transformers` (no API call at all), and the judge call is a toggle specifically because free-tier rate limits are a real constraint, not an edge case to handle later. Ollama support means the entire tool can run with zero hosted API dependency if needed.
 
-- **SQLite over an ORM or a hosted DB.** At the scale of "one person's red-teaming campaigns," SQLAlchemy would add ceremony without adding capability. Plain `sqlite3` keeps `db.py` under 100 lines and fully readable in one sitting. (Trade-off: ephemeral storage on some deploy targets — see [Deployment](#deployment).)
+- **SQLite over an ORM or a hosted DB.** At the scale of "one person's red-teaming campaigns," SQLAlchemy would add ceremony without adding capability. Plain `sqlite3` keeps `db.py` under 100 lines and fully readable in one sitting.
 
 - **LiteLLM as the only LLM dependency.** `llm_client.py` is the single file that imports `litellm`. Every attack, the evaluator's judge call, and the orchestrator all go through `get_completion()`. Swapping providers, adding retry logic, or moving to a different SDK entirely touches one file.
 
@@ -78,10 +78,10 @@ A few choices that shaped the codebase, and why:
 ## Getting started
 
 ```bash
-git clone <your-repo-url>
+git clone <the-repo-url>
 cd agentprobe/backend
 pip install -r requirements.txt
-cp .env.example .env   # add a free Groq/Gemini key, see .env.example for links
+cp .env.example .env
 uvicorn app.main:app --reload --app-dir backend
 ```
 
@@ -90,9 +90,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-Full setup, testing, and API details: [`backend/README.md`](backend/README.md).
-Deployment walkthrough (Render + Vercel, free tier): [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Sample finding
 
