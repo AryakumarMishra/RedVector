@@ -1,6 +1,3 @@
-# AgentProbe backend — built for Hugging Face Spaces' Docker SDK, but runs
-# anywhere Docker does (Railway, Render, Fly.io, your own VPS, etc).
-
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -15,11 +12,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# HF Spaces builds/runs containers as a non-root user; this mirrors that
-# locally too so file permissions behave the same in both places.
+# Non-root user — good practice regardless of platform, and required by some.
 RUN useradd -m -u 1000 agentprobe && chown -R agentprobe:agentprobe /app
 USER agentprobe
 
-EXPOSE 7860
+ENV PORT=8000
+EXPOSE $PORT
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Shell form so ${PORT} gets substituted at container start — this is what
+# lets the same image work whether the platform injects PORT=10000 (Render),
+# PORT=8080 (Cloud Run), or nothing at all (local docker run, falls back to 8000).
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
