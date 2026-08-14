@@ -1,10 +1,18 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
 class CampaignRequest(BaseModel):
-    target_model: str  # any LiteLLM-compatible model string, e.g. "groq/llama-3.1-8b-instant"
+    # "litellm" (default) — target_model is a LiteLLM model string, e.g.
+    # "groq/llama-3.1-8b-instant". "http" — target_config describes a
+    # user's own endpoint to test instead (see targets/http_adapter.py).
+    target_type: str = "litellm"
+    target_model: str | None = None  # required when target_type == "litellm"
+    target_config: dict[str, Any] | None = None  # required when target_type == "http"
+
     categories: list[str] | None = None  # None = run every registered attack
-    system_prompt: str | None = None  # optional system prompt for the target
+    system_prompt: str | None = None  # optional system prompt; litellm targets only
     use_judge: bool | None = None  # None = use JUDGE_MODEL default from .env
 
 
@@ -31,13 +39,13 @@ class CategoryScore(BaseModel):
 
 class CampaignSummary(BaseModel):
     campaign_id: str
-    target_model: str
+    target_label: str  # a model string (litellm target) or endpoint URL (http target)
     created_at: str
     scores: list[CategoryScore]
 
 
 class CampaignResponse(BaseModel):
     campaign_id: str
-    target_model: str
+    target_label: str  # a model string (litellm target) or endpoint URL (http target)
     results: list[ResultOut]
     scores: list[CategoryScore]

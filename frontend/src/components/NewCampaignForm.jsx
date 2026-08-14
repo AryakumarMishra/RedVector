@@ -7,7 +7,15 @@ const CATEGORIES = [
 ];
 
 export default function NewCampaignForm({ onSubmit, submitting }) {
+  const [targetType, setTargetType] = useState("litellm");
   const [targetModel, setTargetModel] = useState("groq/llama-3.1-8b-instant");
+
+  // HTTP target fields — for testing your own app instead of a bare model
+  const [httpUrl, setHttpUrl] = useState("http://localhost:8001/chat");
+  const [requestTemplate, setRequestTemplate] = useState('{"message": "{prompt}"}');
+  const [responsePath, setResponsePath] = useState("data.reply");
+  const [configError, setConfigError] = useState(null);
+
   const [selectedCategories, setSelectedCategories] = useState(
     CATEGORIES.map((c) => c.key)
   );
@@ -21,7 +29,33 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit({ targetModel, categories: selectedCategories, useJudge });
+    setConfigError(null);
+
+    if (targetType === "litellm") {
+      onSubmit({ targetType, targetModel, categories: selectedCategories, useJudge });
+      return;
+    }
+
+    // http target — parse the request template JSON before submitting so
+    // a typo shows up right here, not as a confusing 400 from the API.
+    let parsedTemplate;
+    try {
+      parsedTemplate = JSON.parse(requestTemplate);
+    } catch {
+      setConfigError("Request template must be valid JSON.");
+      return;
+    }
+
+    onSubmit({
+      targetType,
+      targetConfig: {
+        url: httpUrl,
+        request_template: parsedTemplate,
+        response_path: responsePath,
+      },
+      categories: selectedCategories,
+      useJudge,
+    });
   }
 
   return (
@@ -36,14 +70,73 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
       }}
     >
       <div style={{ marginBottom: 14 }}>
-        <label style={label}>Target model (LiteLLM format)</label>
-        <input
-          value={targetModel}
-          onChange={(e) => setTargetModel(e.target.value)}
-          placeholder="groq/llama-3.1-8b-instant"
-          style={input}
-        />
+        <label style={label}>Target type</label>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => setTargetType("litellm")}
+            style={{
+              ...chip,
+              background: targetType === "litellm" ? "#2563eb" : "#232327",
+              color: targetType === "litellm" ? "#fff" : "#9a9aa2",
+            }}
+          >
+            Model (via LiteLLM)
+          </button>
+          <button
+            type="button"
+            onClick={() => setTargetType("http")}
+            style={{
+              ...chip,
+              background: targetType === "http" ? "#2563eb" : "#232327",
+              color: targetType === "http" ? "#fff" : "#9a9aa2",
+            }}
+          >
+            My Own App (HTTP)
+          </button>
+        </div>
       </div>
+
+      {targetType === "litellm" ? (
+        <div style={{ marginBottom: 14 }}>
+          <label style={label}>Target model (LiteLLM format)</label>
+          <input
+            value={targetModel}
+            onChange={(e) => setTargetModel(e.target.value)}
+            placeholder="groq/llama-3.1-8b-instant"
+            style={input}
+          />
+        </div>
+      ) : (
+        <div style={{ marginBottom: 14 }}>
+          <label style={label}>Endpoint URL</label>
+          <input
+            value={httpUrl}
+            onChange={(e) => setHttpUrl(e.target.value)}
+            placeholder="http://localhost:8001/chat"
+            style={{ ...input, marginBottom: 10 }}
+          />
+          <label style={label}>
+            Request template — use {"{prompt}"} where the attack text goes
+          </label>
+          <input
+            value={requestTemplate}
+            onChange={(e) => setRequestTemplate(e.target.value)}
+            placeholder='{"message": "{prompt}"}'
+            style={{ ...input, marginBottom: 10, fontFamily: "ui-monospace, monospace" }}
+          />
+          <label style={label}>Response path — dotted path to the reply text</label>
+          <input
+            value={responsePath}
+            onChange={(e) => setResponsePath(e.target.value)}
+            placeholder="data.reply"
+            style={{ ...input, fontFamily: "ui-monospace, monospace" }}
+          />
+          {configError && (
+            <div style={{ color: "#f87171", fontSize: 12, marginTop: 6 }}>{configError}</div>
+          )}
+        </div>
+      )}
 
       <div style={{ marginBottom: 14 }}>
         <label style={label}>Attack categories</label>

@@ -1,7 +1,5 @@
 """
-Thin wrapper around LiteLLM so the rest of RedVector depends on one
-function, not the litellm SDK directly. If you swap in a custom HTTP
-client later, this is the only file that changes.
+Thin wrapper around LiteLLM so the rest of RedVector depends on one function, not the litellm SDK directly.
 """
 
 from app import config
@@ -15,7 +13,6 @@ def get_completion(model: str, prompt: str, system: str | None = None) -> str:
       - "gpt-4o-mini"
       - "claude-sonnet-4-6"
       - "ollama/llama3"
-    Set the relevant provider API key as an env var (OPENAI_API_KEY, etc).
     """
     messages = []
     if system:

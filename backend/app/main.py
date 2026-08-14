@@ -3,7 +3,9 @@ FastAPI entrypoint.
 
 Exposes:
   POST /campaigns          — run every registered attack against a target
-                              model, return scored + evaluator-enriched results
+                              (a model via LiteLLM, or a user's own HTTP
+                              endpoint), return scored + evaluator-enriched
+                              results
   GET  /campaigns          — list past campaigns with their scores (dashboard history)
   GET  /campaigns/{id}     — full result detail for one campaign (dashboard drill-down)
   GET  /health             — which attack categories are registered
@@ -13,7 +15,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 
-from app import config  # noqa: F401 — import first so .env is loaded before anything else runs
+from app import config
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -28,6 +30,7 @@ from app.models import (
     CategoryScore,
     ResultOut,
 )
+from app.targets import build_target_adapter
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,7 +41,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="RedVector", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AgentProbe", version="0.2.0", lifespan=lifespan)
 
 # React dev server (Vite default) needs CORS to call this API directly.
 # Wide open for local dev only — tighten this before deploying anywhere public.
@@ -112,17 +115,26 @@ def create_campaign(req: CampaignRequest) -> CampaignResponse:
             raise HTTPException(400, f"Unknown attack category: {category}")
         attacks.append(ATTACK_REGISTRY[category])
 
+    try:
+        target = build_target_adapter(
+            target_type=req.target_type,
+            target_model=req.target_model,
+            target_config=req.target_config,
+            system_prompt=req.system_prompt,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
     campaign_id, results = orchestrator.run_campaign(
-        target_model=req.target_model,
+        target=target,
         attacks=attacks,
-        system_prompt=req.system_prompt,
         use_judge=req.use_judge,
     )
     scores = orchestrator.score_by_category(results)
 
     return CampaignResponse(
         campaign_id=campaign_id,
-        target_model=req.target_model,
+        target_label=target.label,
         results=[
             ResultOut(
                 payload_id=r.payload_id,
@@ -152,7 +164,7 @@ def list_campaigns() -> list[CampaignSummary]:
         summaries.append(
             CampaignSummary(
                 campaign_id=campaign["id"],
-                target_model=campaign["target_model"],
+                target_label=campaign["target_model"],
                 created_at=campaign["created_at"],
                 scores=_score_rows_by_category(rows),
             )
@@ -170,7 +182,7 @@ def get_campaign(campaign_id: str) -> CampaignResponse:
     rows = db.get_campaign_results(campaign_id)
     return CampaignResponse(
         campaign_id=campaign_id,
-        target_model=campaign["target_model"],
+        target_label=campaign["target_model"],
         results=[_row_to_result_out(row) for row in rows],
         scores=_score_rows_by_category(rows),
     )
