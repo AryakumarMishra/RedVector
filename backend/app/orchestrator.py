@@ -10,7 +10,7 @@ from app import config, db, evaluator
 from app.attacks.base import Attack, AttackResult
 from app.targets.base import TargetAdapter
 
-logger = logging.getLogger("agentprobe.orchestrator")
+logger = logging.getLogger("redvector.orchestrator")
 
 
 def run_campaign(
