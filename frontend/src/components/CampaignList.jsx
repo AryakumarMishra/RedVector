@@ -1,55 +1,47 @@
-function overallScore(scores) {
-  if (!scores.length) return 0;
-  const totalVuln = scores.reduce((sum, s) => sum + s.vulnerable, 0);
-  const totalTests = scores.reduce((sum, s) => sum + s.total, 0);
-  return totalTests ? totalVuln / totalTests : 0;
-}
+import Icon from "./Icon";
+import { targetLabel, overallVulnerability, severityForScore } from "../theme";
 
 export default function CampaignList({ campaigns, onSelect, selectedId }) {
   if (campaigns.length === 0) {
     return (
-      <div style={{ color: "#9a9aa2", fontSize: 14, padding: "20px 0" }}>
-        No campaigns yet — run one above to get started.
+      <div className="empty-state" style={{ border: "none", borderRadius: 0 }}>
+        <Icon name="clock" size={20} className="empty-icon" />
+        <div className="empty-title">No campaigns yet</div>
+        <div className="empty-sub">Run one above to start a scan.</div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="campaign-list" role="list">
       {campaigns.map((c) => {
-        const score = overallScore(c.scores);
+        const score = overallVulnerability(c.scores);
+        const severity = severityForScore(score);
         const isSelected = c.campaign_id === selectedId;
         return (
-          <div
+          <button
             key={c.campaign_id}
+            role="listitem"
+            className={`campaign-item${isSelected ? " selected" : ""}`}
             onClick={() => onSelect(c.campaign_id)}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 8,
-              border: isSelected ? "1px solid #2563eb" : "1px solid #26262a",
-              background: isSelected ? "#1a2436" : "#18181b",
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+            aria-pressed={isSelected}
           >
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>{c.target_model}</div>
-              <div style={{ fontSize: 12, color: "#9a9aa2" }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="campaign-target">{targetLabel(c)}</div>
+              <div className="campaign-meta">
+                <Icon name="clock" size={11} />
                 {new Date(c.created_at).toLocaleString()}
               </div>
             </div>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: score >= 0.5 ? "#f87171" : "#4ade80",
-              }}
+            <span
+              className="campaign-result"
+              style={{ color: severity.color }}
+              title={`${severity.label} exposure`}
             >
-              {Math.round(score * 100)}% vulnerable
-            </div>
-          </div>
+              {Math.round(score * 100)}%
+            </span>
+            <Icon name="chevronRight" size={14} className="campaign-chevron" />
+          </button>
         );
       })}
     </div>

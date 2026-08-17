@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "./Icon";
 
 const CATEGORIES = [
   { key: "prompt_injection", label: "Prompt Injection" },
@@ -8,7 +9,7 @@ const CATEGORIES = [
 
 export default function NewCampaignForm({ onSubmit, submitting }) {
   const [targetType, setTargetType] = useState("litellm");
-  const [targetModel, setTargetModel] = useState("groq/llama-3.1-8b-instant");
+  const [targetModel, setTargetModel] = useState("groq/openai/gpt-oss-20b");
 
   // HTTP target fields — for testing your own app instead of a bare model
   const [httpUrl, setHttpUrl] = useState("http://localhost:8001/chat");
@@ -58,168 +59,179 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
     });
   }
 
+  const canSubmit = !submitting && selectedCategories.length > 0;
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        border: "1px solid #26262a",
-        borderRadius: 10,
-        padding: 20,
-        marginBottom: 24,
-        background: "#18181b",
-      }}
-    >
-      <div style={{ marginBottom: 14 }}>
-        <label style={label}>Target type</label>
-        <div style={{ display: "flex", gap: 10 }}>
+    <form onSubmit={handleSubmit}>
+      <div className="field">
+        <label className="field-label">Target type</label>
+        <div className="segmented" role="group" aria-label="Target type">
           <button
             type="button"
+            className={`seg-btn${targetType === "litellm" ? " active" : ""}`}
             onClick={() => setTargetType("litellm")}
-            style={{
-              ...chip,
-              background: targetType === "litellm" ? "#2563eb" : "#232327",
-              color: targetType === "litellm" ? "#fff" : "#9a9aa2",
-            }}
           >
+            <Icon name="target" size={13} />
             Model (via LiteLLM)
           </button>
           <button
             type="button"
+            className={`seg-btn${targetType === "http" ? " active" : ""}`}
             onClick={() => setTargetType("http")}
-            style={{
-              ...chip,
-              background: targetType === "http" ? "#2563eb" : "#232327",
-              color: targetType === "http" ? "#fff" : "#9a9aa2",
-            }}
           >
+            <Icon name="server" size={13} />
             My Own App (HTTP)
           </button>
         </div>
       </div>
 
       {targetType === "litellm" ? (
-        <div style={{ marginBottom: 14 }}>
-          <label style={label}>Target model (LiteLLM format)</label>
+        <div className="field">
+          <label className="field-label" htmlFor="target-model">
+            <span className="field-icon">
+              <Icon name="terminal" size={11} />
+            </span>
+            Target model (LiteLLM format)
+          </label>
           <input
+            id="target-model"
+            className="input mono"
             value={targetModel}
             onChange={(e) => setTargetModel(e.target.value)}
-            placeholder="groq/llama-3.1-8b-instant"
-            style={input}
+            placeholder="groq/openai/gpt-oss-20b"
+            spellCheck="false"
           />
+          <div className="field-hint">
+            e.g. groq/openai/gpt-oss-20b, openai/gpt-4o, ollama_chat/llama3
+          </div>
         </div>
       ) : (
-        <div style={{ marginBottom: 14 }}>
-          <label style={label}>Endpoint URL</label>
+        <div className="field">
+          <label className="field-label" htmlFor="http-url">
+            <span className="field-icon">
+              <Icon name="server" size={11} />
+            </span>
+            Endpoint URL
+          </label>
           <input
+            id="http-url"
+            className="input mono"
             value={httpUrl}
             onChange={(e) => setHttpUrl(e.target.value)}
             placeholder="http://localhost:8001/chat"
-            style={{ ...input, marginBottom: 10 }}
+            spellCheck="false"
           />
-          <label style={label}>
-            Request template — use {"{prompt}"} where the attack text goes
+          <label className="field-label" htmlFor="request-template">
+            <span className="field-icon">
+              <Icon name="terminal" size={11} />
+            </span>
+            Request template
           </label>
           <input
+            id="request-template"
+            className="input mono"
             value={requestTemplate}
             onChange={(e) => setRequestTemplate(e.target.value)}
             placeholder='{"message": "{prompt}"}'
-            style={{ ...input, marginBottom: 10, fontFamily: "ui-monospace, monospace" }}
+            spellCheck="false"
           />
-          <label style={label}>Response path — dotted path to the reply text</label>
+          <div className="field-hint">
+            Use {"{prompt}"} where the attack text goes.
+          </div>
+          <label className="field-label" htmlFor="response-path">
+            <span className="field-icon">
+              <Icon name="fileText" size={11} />
+            </span>
+            Response path
+          </label>
           <input
+            id="response-path"
+            className="input mono"
             value={responsePath}
             onChange={(e) => setResponsePath(e.target.value)}
             placeholder="data.reply"
-            style={{ ...input, fontFamily: "ui-monospace, monospace" }}
+            spellCheck="false"
           />
+          <div className="field-hint">
+            Dotted path to the reply text in the response body.
+          </div>
           {configError && (
-            <div style={{ color: "#f87171", fontSize: 12, marginTop: 6 }}>{configError}</div>
+            <div className="error-banner" style={{ marginTop: 10, marginBottom: 0 }}>
+              <Icon name="alertTriangle" size={14} />
+              <div>{configError}</div>
+            </div>
           )}
         </div>
       )}
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={label}>Attack categories</label>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {CATEGORIES.map((c) => (
-            <button
-              type="button"
-              key={c.key}
-              onClick={() => toggleCategory(c.key)}
-              style={{
-                ...chip,
-                background: selectedCategories.includes(c.key) ? "#2563eb" : "#232327",
-                color: selectedCategories.includes(c.key) ? "#fff" : "#9a9aa2",
-              }}
-            >
-              {c.label}
-            </button>
-          ))}
+      <div className="field">
+        <label className="field-label">
+          <span className="field-icon">
+            <Icon name="zap" size={11} />
+          </span>
+          Attack categories
+        </label>
+        <div className="module-grid">
+          {CATEGORIES.map((c) => {
+            const active = selectedCategories.includes(c.key);
+            return (
+              <button
+                type="button"
+                key={c.key}
+                className={`module-chip${active ? " active" : ""}`}
+                onClick={() => toggleCategory(c.key)}
+                aria-pressed={active}
+              >
+                {c.label}
+                <span className="module-check">
+                  <Icon name="check" size={13} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="field-hint">
+          {selectedCategories.length === 0
+            ? "Select at least one category to run."
+            : `${selectedCategories.length} of ${CATEGORIES.length} selected.`}
         </div>
       </div>
 
-      <div style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>
-        <input
-          type="checkbox"
-          id="use-judge"
-          checked={useJudge}
-          onChange={(e) => setUseJudge(e.target.checked)}
-        />
-        <label htmlFor="use-judge" style={{ fontSize: 13, color: "#9a9aa2" }}>
-          Use LLM-judge scoring (doubles LLM calls — turn off if rate-limited)
+      <div className="field">
+        <label className="toggle-row" htmlFor="use-judge">
+          <input
+            type="checkbox"
+            id="use-judge"
+            checked={useJudge}
+            onChange={(e) => setUseJudge(e.target.checked)}
+          />
+          <span>
+            <div className="toggle-title">Use LLM-judge scoring</div>
+            <div className="toggle-desc">
+              Adds an independent judge verdict. Doubles LLM calls — disable if
+              rate-limited.
+            </div>
+          </span>
         </label>
       </div>
 
       <button
         type="submit"
-        disabled={submitting || selectedCategories.length === 0}
-        style={{
-          ...button,
-          opacity: submitting || selectedCategories.length === 0 ? 0.6 : 1,
-        }}
+        className="btn btn-primary btn-submit"
+        disabled={!canSubmit}
       >
-        {submitting ? "Running campaign…" : "Run campaign"}
+        {submitting ? (
+          <>
+            <span className="spinner" />
+            Running campaign…
+          </>
+        ) : (
+          <>
+            <Icon name="play" size={13} />
+            Run campaign
+          </>
+        )}
       </button>
     </form>
   );
 }
-
-const label = {
-  display: "block",
-  fontSize: 12,
-  color: "#9a9aa2",
-  marginBottom: 6,
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: 0.4,
-};
-
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #333",
-  background: "#111113",
-  color: "#e8e8ea",
-  fontSize: 14,
-  boxSizing: "border-box",
-};
-
-const chip = {
-  padding: "6px 14px",
-  borderRadius: 999,
-  border: "none",
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const button = {
-  padding: "10px 20px",
-  borderRadius: 8,
-  border: "none",
-  background: "#2563eb",
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-};

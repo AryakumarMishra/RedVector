@@ -24,7 +24,7 @@ def build_target_adapter(
     """Build the right adapter for the requested target type.
 
     - target_type="litellm": target_model is a LiteLLM model string, e.g.
-      "groq/llama-3.1-8b-instant". system_prompt (if given) is sent as the
+      "groq/openai/gpt-oss-20b". system_prompt (if given) is sent as the
       LLM's system message.
     - target_type="http": target_config must contain "url",
       "request_template", and "response_path" (see HTTPAdapter's docstring

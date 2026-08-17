@@ -1,79 +1,173 @@
 import { useState } from "react";
+import Icon from "./Icon";
+import { categoryLabel } from "../theme";
 
-const CATEGORY_LABELS = {
-  prompt_injection: "Prompt Injection",
-  jailbreak: "Jailbreak",
-  rag_poisoning: "RAG Poisoning",
-};
-
-function Badge({ vulnerable }) {
+function VerdictBadge({ vulnerable }) {
   return (
-    <span
-      style={{
-        padding: "3px 10px",
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        background: vulnerable ? "#4c1d1d" : "#12331f",
-        color: vulnerable ? "#f87171" : "#4ade80",
-      }}
-    >
+    <span className={`badge ${vulnerable ? "badge-vulnerable" : "badge-resisted"}`}>
+      <span className="badge-dot" />
       {vulnerable ? "Vulnerable" : "Resisted"}
     </span>
+  );
+}
+
+function FindingDetail({ result }) {
+  const signals = [
+    {
+      label: "Relevance",
+      color: result.relevance_score != null ? "#60A5FA" : "#6B7280",
+      value:
+        result.relevance_score != null
+          ? `${result.relevance_score.toFixed(2)}`
+          : "n/a",
+    },
+    {
+      label: "Refusal",
+      color:
+        result.refusal_detected == null
+          ? "#6B7280"
+          : result.refusal_detected
+            ? "#22C55E"
+            : "#F97316",
+      value:
+        result.refusal_detected == null
+          ? "n/a"
+          : result.refusal_detected
+            ? "detected"
+            : "none",
+    },
+    {
+      label: "Judge",
+      color:
+        result.judge_followed_injection == null
+          ? "#6B7280"
+          : result.judge_followed_injection
+            ? "#EF4444"
+            : "#22C55E",
+      value:
+        result.judge_followed_injection == null
+          ? "n/a"
+          : result.judge_followed_injection
+            ? "followed injection"
+            : "resisted injection",
+    },
+  ];
+
+  return (
+    <div className="finding-detail">
+      <div className="detail-block">
+        <div className="detail-block-head">
+          <Icon name="terminal" size={12} />
+          Attack input
+        </div>
+        <pre className="code-block">{result.prompt}</pre>
+      </div>
+
+      <div className="detail-block">
+        <div className="detail-block-head">
+          <Icon name="externalLink" size={12} />
+          Model response
+        </div>
+        <pre className="code-block">{result.response}</pre>
+      </div>
+
+      <div className="detail-block">
+        <div className="detail-block-head">
+          <span className="head-accent">
+            <Icon name={result.vulnerable ? "alertTriangle" : "check"} size={12} />
+          </span>
+          {result.vulnerable
+            ? "Why this was classified as vulnerable"
+            : "Why this was classified as resisted"}
+        </div>
+        <div className="evidence-line">
+          <Icon name="search" size={14} />
+          <span>
+            <strong>Detection:</strong> {result.evidence}
+          </span>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <div className="signal-row">
+            {signals.map((s) => (
+              <span key={s.label} className="signal-chip">
+                <span className="signal-dot" style={{ background: s.color }} />
+                {s.label}: {s.value}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {result.judge_reasoning && (
+        <div className="detail-block">
+          <div className="detail-block-head">
+            <Icon name="activity" size={12} />
+            Judge reasoning
+          </div>
+          <div className="code-block" style={{ color: "#E9EBEF" }}>
+            {result.judge_reasoning}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 function ResultRow({ result }) {
   const [expanded, setExpanded] = useState(false);
 
+  function toggle() {
+    setExpanded((e) => !e);
+  }
+
   return (
     <>
       <tr
-        onClick={() => setExpanded((e) => !e)}
-        style={{ cursor: "pointer", borderBottom: "1px solid #26262a" }}
+        className={`row-main${result.vulnerable ? " vulnerable" : ""}`}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggle();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-controls={`detail-${result.payload_id}`}
       >
-        <td style={{ padding: "10px 12px", color: "#9a9aa2", fontSize: 13 }}>
-          {CATEGORY_LABELS[result.category] || result.category}
+        <td className="cell-category">
+          <span className="cat-dot" style={{ background: "#4B5563" }} />
+          {categoryLabel(result.category)}
         </td>
-        <td style={{ padding: "10px 12px", fontSize: 13 }}>{result.payload_id}</td>
-        <td style={{ padding: "10px 12px" }}>
-          <Badge vulnerable={result.vulnerable} />
+        <td className="cell-payload" title={result.payload_id}>
+          {result.payload_id}
         </td>
-        <td style={{ padding: "10px 12px", fontSize: 13, color: "#9a9aa2" }}>
-          {result.confidence.toFixed(2)}
+        <td>
+          <VerdictBadge vulnerable={result.vulnerable} />
         </td>
-        <td style={{ padding: "10px 12px", fontSize: 13, color: "#9a9aa2" }}>
-          {result.relevance_score != null ? result.relevance_score.toFixed(2) : "—"}
+        <td className="cell-num">{Math.round(result.confidence * 100)}%</td>
+        <td className="cell-num">
+          {result.relevance_score != null
+            ? result.relevance_score.toFixed(2)
+            : "—"}
         </td>
-        <td style={{ padding: "10px 12px", fontSize: 18, color: "#666", textAlign: "center" }}>
-          {expanded ? "−" : "+"}
+        <td className="cell-toggle">
+          <span
+            className={`expand-toggle${expanded ? " open" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle();
+            }}
+          >
+            <Icon name="chevronDown" size={14} />
+          </span>
         </td>
       </tr>
       {expanded && (
-        <tr style={{ borderBottom: "1px solid #26262a" }}>
-          <td colSpan={6} style={{ padding: "14px 16px", background: "#18181b" }}>
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>PROMPT</div>
-              <pre style={pre}>{result.prompt}</pre>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>RESPONSE</div>
-              <pre style={pre}>{result.response}</pre>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>EVIDENCE</div>
-              <div style={{ fontSize: 13 }}>{result.evidence}</div>
-            </div>
-            {result.judge_reasoning && (
-              <div>
-                <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>
-                  JUDGE VERDICT
-                  {result.judge_followed_injection != null &&
-                    ` (${result.judge_followed_injection ? "followed injection" : "did not follow"})`}
-                </div>
-                <div style={{ fontSize: 13 }}>{result.judge_reasoning}</div>
-              </div>
-            )}
+        <tr id={`detail-${result.payload_id}`}>
+          <td className="expanded-cell" colSpan={6}>
+            <FindingDetail result={result} />
           </td>
         </tr>
       )}
@@ -81,47 +175,28 @@ function ResultRow({ result }) {
   );
 }
 
-const pre = {
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
-  fontSize: 13,
-  fontFamily: "ui-monospace, monospace",
-  background: "#111113",
-  padding: "8px 10px",
-  borderRadius: 6,
-  margin: 0,
-  color: "#d4d4d8",
-};
-
 export default function ResultsTable({ results }) {
   return (
-    <div style={{ overflowX: "auto", border: "1px solid #26262a", borderRadius: 10 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ borderBottom: "1px solid #26262a", textAlign: "left" }}>
-            <th style={th}>Category</th>
-            <th style={th}>Payload</th>
-            <th style={th}>Verdict</th>
-            <th style={th}>Confidence</th>
-            <th style={th}>Relevance</th>
-            <th style={th}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((r) => (
-            <ResultRow key={r.payload_id} result={r} />
-          ))}
-        </tbody>
-      </table>
+    <div className="results-wrap">
+      <div className="results-scroll">
+        <table className="results-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Payload</th>
+              <th>Verdict</th>
+              <th>Confidence</th>
+              <th>Relevance</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r) => (
+              <ResultRow key={r.payload_id} result={r} />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
-
-const th = {
-  padding: "10px 12px",
-  fontSize: 12,
-  color: "#9a9aa2",
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: 0.4,
-};

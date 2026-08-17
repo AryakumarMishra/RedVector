@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class CampaignRequest(BaseModel):
     # "litellm" (default) — target_model is a LiteLLM model string, e.g.
-    # "groq/llama-3.1-8b-instant". "http" — target_config describes a
+    # "groq/openai/gpt-oss-20b". "http" — target_config describes a
     # user's own endpoint to test instead (see targets/http_adapter.py).
     target_type: str = "litellm"
     target_model: str | None = None  # required when target_type == "litellm"

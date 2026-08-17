@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", "groq/llama-3.1-8b-instant")
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "groq/openai/gpt-oss-20b")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 USE_JUDGE_DEFAULT = os.getenv("USE_JUDGE_DEFAULT", "true").lower() == "true"
 

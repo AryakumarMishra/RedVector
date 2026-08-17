@@ -7,7 +7,7 @@ RedVector fires a structured library of prompt injection, jailbreak, and RAG-poi
 ```bash
 curl -X POST http://localhost:8000/campaigns \
   -H "Content-Type: application/json" \
-  -d '{"target_model": "groq/llama-3.1-8b-instant"}'
+  -d '{"target_model": "groq/openai/gpt-oss-20b"}'
 ```
 
 ## Problem statement
@@ -93,7 +93,7 @@ npm run dev
 
 ## Sample finding
 
-A real (unedited) run against `groq/llama-3.1-8b-instant` on free tier:
+A real (unedited) run against `groq/openai/gpt-oss-20b` on free tier:
 
 | Category | Vulnerability score |
 |---|---|
