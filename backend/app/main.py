@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AgentProbe", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="RedVector", version="0.2.0", lifespan=lifespan)
 
 # React dev server (Vite default) needs CORS to call this API directly.
 # Wide open for local dev only — tighten this before deploying anywhere public.
