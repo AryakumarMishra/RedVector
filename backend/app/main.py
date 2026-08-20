@@ -15,14 +15,18 @@ import json
 import logging
 from contextlib import asynccontextmanager
 
-from app import config
+from app import config  # noqa: F401 — import first so .env is loaded before anything else runs
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db, orchestrator
+from app.attacks.improper_output_handling import ImproperOutputHandlingAttack
 from app.attacks.jailbreak import JailbreakAttack
 from app.attacks.prompt_injection import PromptInjectionAttack
 from app.attacks.rag_poisoning import RagPoisoningAttack
+from app.attacks.sensitive_info_disclosure import SensitiveInfoDisclosureAttack
+from app.attacks.system_prompt_leakage import SystemPromptLeakageAttack
+from app.attacks.unbounded_consumption import UnboundedConsumptionAttack
 from app.models import (
     CampaignRequest,
     CampaignResponse,
@@ -57,6 +61,10 @@ ATTACK_REGISTRY = {
     "prompt_injection": PromptInjectionAttack(),
     "jailbreak": JailbreakAttack(),
     "rag_poisoning": RagPoisoningAttack(),
+    "system_prompt_leakage": SystemPromptLeakageAttack(),
+    "sensitive_info_disclosure": SensitiveInfoDisclosureAttack(),
+    "improper_output_handling": ImproperOutputHandlingAttack(),
+    "unbounded_consumption": UnboundedConsumptionAttack(),
 }
 
 

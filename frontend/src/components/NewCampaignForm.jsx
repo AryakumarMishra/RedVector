@@ -5,6 +5,10 @@ const CATEGORIES = [
   { key: "prompt_injection", label: "Prompt Injection" },
   { key: "jailbreak", label: "Jailbreak" },
   { key: "rag_poisoning", label: "RAG Poisoning" },
+  { key: "system_prompt_leakage", label: "System Prompt Leakage" },
+  { key: "sensitive_info_disclosure", label: "Sensitive Information Disclosure" },
+  { key: "improper_output_handling", label: "Improper Output Handling" },
+  { key: "unbounded_consumption", label: "Unbounded Consumption" },
 ];
 
 export default function NewCampaignForm({ onSubmit, submitting }) {
