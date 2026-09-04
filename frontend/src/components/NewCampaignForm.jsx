@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Icon from "./Icon";
 
-const CATEGORIES = [
+const SINGLE_TURN_CATEGORIES = [
   { key: "prompt_injection", label: "Prompt Injection" },
   { key: "jailbreak", label: "Jailbreak" },
   { key: "rag_poisoning", label: "RAG Poisoning" },
@@ -9,6 +9,11 @@ const CATEGORIES = [
   { key: "sensitive_info_disclosure", label: "Sensitive Information Disclosure" },
   { key: "improper_output_handling", label: "Improper Output Handling" },
   { key: "unbounded_consumption", label: "Unbounded Consumption" },
+];
+
+const MULTITURN_CATEGORIES = [
+  { key: "context_poisoning", label: "Context Poisoning" },
+  { key: "escalating_jailbreak", label: "Escalating Jailbreak" },
 ];
 
 export default function NewCampaignForm({ onSubmit, submitting }) {
@@ -21,10 +26,17 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
   const [responsePath, setResponsePath] = useState("data.reply");
   const [configError, setConfigError] = useState(null);
 
+  // Campaign mode: single-turn payloads vs. multi-turn conversation attacks.
+  // The backend runs these through separate registries/endpoints, and the
+  // multi-turn endpoint 400s on single-turn category names — so the
+  // category grid switches with the mode.
+  const [multiturn, setMultiturn] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState(
-    CATEGORIES.map((c) => c.key)
+    SINGLE_TURN_CATEGORIES.map((c) => c.key)
   );
   const [useJudge, setUseJudge] = useState(true);
+
+  const categories = multiturn ? MULTITURN_CATEGORIES : SINGLE_TURN_CATEGORIES;
 
   function toggleCategory(key) {
     setSelectedCategories((prev) =>
@@ -32,41 +44,158 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
     );
   }
 
+  function handleModeChange(next) {
+    setMultiturn(next);
+    setSelectedCategories(
+      (next ? MULTITURN_CATEGORIES : SINGLE_TURN_CATEGORIES).map((c) => c.key)
+    );
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     setConfigError(null);
 
-    if (targetType === "litellm") {
-      onSubmit({ targetType, targetModel, categories: selectedCategories, useJudge });
-      return;
-    }
-
-    // http target — parse the request template JSON before submitting so
-    // a typo shows up right here, not as a confusing 400 from the API.
-    let parsedTemplate;
-    try {
-      parsedTemplate = JSON.parse(requestTemplate);
-    } catch {
-      setConfigError("Request template must be valid JSON.");
-      return;
+    let targetConfig = null;
+    if (targetType === "http") {
+      // Parse the request template JSON before submitting so a typo shows
+      // up right here, not as a confusing 400 from the API.
+      let parsedTemplate;
+      try {
+        parsedTemplate = JSON.parse(requestTemplate);
+      } catch {
+        setConfigError("Request template must be valid JSON.");
+        return;
+      }
+      targetConfig = {
+        url: httpUrl,
+        request_template: parsedTemplate,
+        response_path: responsePath,
+      };
     }
 
     onSubmit({
       targetType,
-      targetConfig: {
-        url: httpUrl,
-        request_template: parsedTemplate,
-        response_path: responsePath,
-      },
+      targetModel: targetType === "litellm" ? targetModel : null,
+      targetConfig,
       categories: selectedCategories,
       useJudge,
+      multiturn,
     });
   }
 
   const canSubmit = !submitting && selectedCategories.length > 0;
 
+  const targetSection =
+    targetType === "litellm" ? (
+      <div className="field">
+        <label className="field-label" htmlFor="target-model">
+          <span className="field-icon">
+            <Icon name="terminal" size={11} />
+          </span>
+          Target model (LiteLLM format)
+        </label>
+        <input
+          id="target-model"
+          className="input mono"
+          value={targetModel}
+          onChange={(e) => setTargetModel(e.target.value)}
+          placeholder="groq/openai/gpt-oss-20b"
+          spellCheck="false"
+        />
+        <div className="field-hint">
+          e.g. groq/openai/gpt-oss-20b, openai/gpt-4o, ollama_chat/llama3
+        </div>
+      </div>
+    ) : (
+      <div className="field">
+        <label className="field-label" htmlFor="http-url">
+          <span className="field-icon">
+            <Icon name="server" size={11} />
+          </span>
+          Endpoint URL
+        </label>
+        <input
+          id="http-url"
+          className="input mono"
+          value={httpUrl}
+          onChange={(e) => setHttpUrl(e.target.value)}
+          placeholder="http://localhost:8001/chat"
+          spellCheck="false"
+        />
+        <label className="field-label" htmlFor="request-template">
+          <span className="field-icon">
+            <Icon name="terminal" size={11} />
+          </span>
+          Request template
+        </label>
+        <input
+          id="request-template"
+          className="input mono"
+          value={requestTemplate}
+          onChange={(e) => setRequestTemplate(e.target.value)}
+          placeholder='{"message": "{prompt}"}'
+          spellCheck="false"
+        />
+        <div className="field-hint">
+          Use {"{prompt}"} where the attack text goes. For multi-turn runs,{" "}
+          {"{history}"} is replaced with the conversation so far.
+        </div>
+        <label className="field-label" htmlFor="response-path">
+          <span className="field-icon">
+            <Icon name="fileText" size={11} />
+          </span>
+          Response path
+        </label>
+        <input
+          id="response-path"
+          className="input mono"
+          value={responsePath}
+          onChange={(e) => setResponsePath(e.target.value)}
+          placeholder="data.reply"
+          spellCheck="false"
+        />
+        <div className="field-hint">
+          Dotted path to the reply text in the response body.
+        </div>
+        {configError && (
+          <div className="error-banner" style={{ marginTop: 10, marginBottom: 0 }}>
+            <Icon name="alertTriangle" size={14} />
+            <div>{configError}</div>
+          </div>
+        )}
+      </div>
+    );
+
   return (
     <form onSubmit={handleSubmit}>
+      <div className="field">
+        <label className="field-label">Campaign mode</label>
+        <div className="segmented" role="group" aria-label="Campaign mode">
+          <button
+            type="button"
+            className={`seg-btn${!multiturn ? " active" : ""}`}
+            onClick={() => handleModeChange(false)}
+          >
+            <Icon name="zap" size={13} />
+            Single-turn
+          </button>
+          <button
+            type="button"
+            className={`seg-btn${multiturn ? " active" : ""}`}
+            onClick={() => handleModeChange(true)}
+          >
+            <Icon name="history" size={13} />
+            Multi-turn
+          </button>
+        </div>
+        {multiturn && (
+          <div className="field-hint">
+            Runs conversation attacks (context poisoning, escalating
+            jailbreak) that span several turns against the target.
+          </div>
+        )}
+      </div>
+
       <div className="field">
         <label className="field-label">Target type</label>
         <div className="segmented" role="group" aria-label="Target type">
@@ -89,84 +218,7 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
         </div>
       </div>
 
-      {targetType === "litellm" ? (
-        <div className="field">
-          <label className="field-label" htmlFor="target-model">
-            <span className="field-icon">
-              <Icon name="terminal" size={11} />
-            </span>
-            Target model (LiteLLM format)
-          </label>
-          <input
-            id="target-model"
-            className="input mono"
-            value={targetModel}
-            onChange={(e) => setTargetModel(e.target.value)}
-            placeholder="groq/openai/gpt-oss-20b"
-            spellCheck="false"
-          />
-          <div className="field-hint">
-            e.g. groq/openai/gpt-oss-20b, openai/gpt-4o, ollama_chat/llama3
-          </div>
-        </div>
-      ) : (
-        <div className="field">
-          <label className="field-label" htmlFor="http-url">
-            <span className="field-icon">
-              <Icon name="server" size={11} />
-            </span>
-            Endpoint URL
-          </label>
-          <input
-            id="http-url"
-            className="input mono"
-            value={httpUrl}
-            onChange={(e) => setHttpUrl(e.target.value)}
-            placeholder="http://localhost:8001/chat"
-            spellCheck="false"
-          />
-          <label className="field-label" htmlFor="request-template">
-            <span className="field-icon">
-              <Icon name="terminal" size={11} />
-            </span>
-            Request template
-          </label>
-          <input
-            id="request-template"
-            className="input mono"
-            value={requestTemplate}
-            onChange={(e) => setRequestTemplate(e.target.value)}
-            placeholder='{"message": "{prompt}"}'
-            spellCheck="false"
-          />
-          <div className="field-hint">
-            Use {"{prompt}"} where the attack text goes.
-          </div>
-          <label className="field-label" htmlFor="response-path">
-            <span className="field-icon">
-              <Icon name="fileText" size={11} />
-            </span>
-            Response path
-          </label>
-          <input
-            id="response-path"
-            className="input mono"
-            value={responsePath}
-            onChange={(e) => setResponsePath(e.target.value)}
-            placeholder="data.reply"
-            spellCheck="false"
-          />
-          <div className="field-hint">
-            Dotted path to the reply text in the response body.
-          </div>
-          {configError && (
-            <div className="error-banner" style={{ marginTop: 10, marginBottom: 0 }}>
-              <Icon name="alertTriangle" size={14} />
-              <div>{configError}</div>
-            </div>
-          )}
-        </div>
-      )}
+      {targetSection}
 
       <div className="field">
         <label className="field-label">
@@ -176,7 +228,7 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
           Attack categories
         </label>
         <div className="module-grid">
-          {CATEGORIES.map((c) => {
+          {categories.map((c) => {
             const active = selectedCategories.includes(c.key);
             return (
               <button
@@ -197,7 +249,7 @@ export default function NewCampaignForm({ onSubmit, submitting }) {
         <div className="field-hint">
           {selectedCategories.length === 0
             ? "Select at least one category to run."
-            : `${selectedCategories.length} of ${CATEGORIES.length} selected.`}
+            : `${selectedCategories.length} of ${categories.length} selected.`}
         </div>
       </div>
 

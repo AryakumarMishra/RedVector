@@ -18,15 +18,30 @@ export async function getCampaign(campaignId) {
   return handleResponse(res);
 }
 
-export async function createCampaign({ targetModel, categories, useJudge }) {
+function campaignBody({ targetType, targetModel, targetConfig, categories, useJudge }) {
+  return {
+    target_type: targetType || "litellm",
+    target_model: targetModel || null,
+    target_config: targetConfig || null,
+    categories: categories && categories.length ? categories : null,
+    use_judge: useJudge,
+  };
+}
+
+export async function createCampaign(payload) {
   const res = await fetch(`${API_BASE}/campaigns`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      target_model: targetModel,
-      categories: categories && categories.length ? categories : null,
-      use_judge: useJudge,
-    }),
+    body: JSON.stringify(campaignBody(payload)),
+  });
+  return handleResponse(res);
+}
+
+export async function multiturnCampaign(payload) {
+  const res = await fetch(`${API_BASE}/campaigns/multiturn`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(campaignBody(payload)),
   });
   return handleResponse(res);
 }

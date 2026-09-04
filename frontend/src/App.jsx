@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listCampaigns, getCampaign, createCampaign } from "./api";
+import { listCampaigns, getCampaign, createCampaign, multiturnCampaign } from "./api";
 import NewCampaignForm from "./components/NewCampaignForm";
 import CampaignList from "./components/CampaignList";
 import ScoreChart from "./components/ScoreChart";
@@ -60,11 +60,14 @@ export default function App() {
     }
   }
 
-  async function handleCreate({ targetModel, categories, useJudge }) {
+  async function handleCreate({ targetType, targetModel, targetConfig, categories, useJudge, multiturn }) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await createCampaign({ targetModel, categories, useJudge });
+      const payload = { targetType, targetModel, targetConfig, categories, useJudge };
+      const result = multiturn
+        ? await multiturnCampaign(payload)
+        : await createCampaign(payload);
       setSelectedCampaign(result);
       await refreshCampaigns();
     } catch (err) {

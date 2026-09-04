@@ -109,6 +109,31 @@ function FindingDetail({ result }) {
           </div>
         </div>
       )}
+
+      {result.multiturn && result.turns && result.turns.length > 0 && (
+        <div className="detail-block">
+          <div className="detail-block-head">
+            <Icon name="history" size={12} />
+            Conversation turns
+          </div>
+          {result.turns.map((turn, i) => (
+            <div key={i} style={{ marginBottom: i < result.turns.length - 1 ? 10 : 0 }}>
+              <div className="field-hint" style={{ marginBottom: 4 }}>
+                Turn {i + 1} — attack input
+              </div>
+              <pre className="code-block">{turn}</pre>
+              {result.responses && result.responses[i] != null && (
+                <pre
+                  className="code-block"
+                  style={{ marginTop: 6, borderLeft: "2px solid #343A46" }}
+                >
+                  {result.responses[i]}
+                </pre>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

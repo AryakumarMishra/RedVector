@@ -44,6 +44,13 @@ const PATHS = {
       <polyline points="12 7 12 12 15.5 14" />
     </>
   ),
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 4 3 9 8 9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </>
+  ),
   terminal: (
     <>
       <polyline points="4 17 10 11 4 5" />

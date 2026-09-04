@@ -36,6 +36,8 @@ export const theme = {
 export const CATEGORY_LABELS = {
   prompt_injection: "Prompt Injection",
   jailbreak: "Jailbreak",
+  context_poisoning: "Context Poisoning",
+  escalating_jailbreak: "Escalating Jailbreak",
   rag_poisoning: "RAG Poisoning",
   system_prompt_leakage: "System Prompt Leakage",
   sensitive_info_disclosure: "Sensitive Information Disclosure",
