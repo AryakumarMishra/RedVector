@@ -10,7 +10,7 @@ import logging
 from app.llm_client import get_completion, get_conversation_completion
 from app.targets.base import TargetAdapter, TargetResponse
 
-logger = logging.getLogger("agentprobe.targets.litellm")
+logger = logging.getLogger("redvector.targets.litellm")
 
 
 class LiteLLMAdapter(TargetAdapter):

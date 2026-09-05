@@ -30,7 +30,7 @@ import requests
  
 from app.targets.base import TargetAdapter, TargetResponse
  
-logger = logging.getLogger("agentprobe.targets.http")
+logger = logging.getLogger("redvector.targets.http")
  
 DEFAULT_TIMEOUT_SECONDS = 30
  

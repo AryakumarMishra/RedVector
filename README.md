@@ -105,10 +105,8 @@ Every direct prompt-injection payload succeeded — the model followed injected 
 
 ## Roadmap
 
-Shipped (v1): three attack modules, layered evaluation, dashboard, free-tier-first design, Docker deployment.
+Shipped (v3): seven OWASP LLM attack modules, two multi-turn (OWASP LLM) attack modules, and two ASI agentic attack modules, layered evaluation, dashboard, free-tier-first design, Docker deployment.
 
 Not yet built, scoped for later:
-- **Remediation suggestions** — given a confirmed vulnerability, suggest a system-prompt hardening or input-sanitization fix, and let the user re-run the campaign to verify it closes the gap. This turns RedVector from purely offensive to offense-plus-defense.
-- **Multi-turn attack sequences** — current attacks are single-turn; conversational escalation (build rapport, then pivot) is a known jailbreak pattern not yet modeled.
 - **Custom payload upload** — let a user bring their own attack library instead of only the built-in YAML sets.
 - **Persistent hosted storage** — swap SQLite for a free-tier hosted Postgres so campaign history survives redeploys on ephemeral hosts.

@@ -12,7 +12,7 @@ from app.attacks.base import Attack, AttackResult, Payload
 from app.attacks.multiturn_base import MultiTurnAttack, sequence_result_to_attack_result
 from app.targets.base import TargetAdapter
 
-logger = logging.getLogger("agentprobe.orchestrator")
+logger = logging.getLogger("redvector.orchestrator")
 
 
 def run_campaign(

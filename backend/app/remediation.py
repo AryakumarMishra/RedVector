@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from app import config
 from app.llm_client import get_completion
 
-logger = logging.getLogger("agentprobe.remediation")
+logger = logging.getLogger("redvector.remediation")
 
 DISCLAIMER = (
     "This is an automated suggestion, not a guaranteed fix. It has not been "
