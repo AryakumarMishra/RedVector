@@ -9,6 +9,8 @@ const SINGLE_TURN_CATEGORIES = [
   { key: "sensitive_info_disclosure", label: "Sensitive Information Disclosure" },
   { key: "improper_output_handling", label: "Improper Output Handling" },
   { key: "unbounded_consumption", label: "Unbounded Consumption" },
+  { key: "agent_goal_hijack", label: "Agent Goal Hijack" },
+  { key: "tool_misuse", label: "Tool Misuse" },
 ];
 
 const MULTITURN_CATEGORIES = [

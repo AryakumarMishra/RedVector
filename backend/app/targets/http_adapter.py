@@ -25,16 +25,16 @@ prior turns injected, e.g. {"message": "{history}{prompt}"}.
 
 import logging
 from typing import Any
-
+ 
 import requests
-
+ 
 from app.targets.base import TargetAdapter, TargetResponse
-
+ 
 logger = logging.getLogger("agentprobe.targets.http")
-
+ 
 DEFAULT_TIMEOUT_SECONDS = 30
-
-
+ 
+ 
 def _substitute_placeholders(template: Any, values: dict[str, str]) -> Any:
     """Recursively walk a request template, replacing every occurrence of
     each "{key}" placeholder in `values` with its string value. Works
@@ -51,16 +51,16 @@ def _substitute_placeholders(template: Any, values: dict[str, str]) -> Any:
     if isinstance(template, list):
         return [_substitute_placeholders(item, values) for item in template]
     return template
-
-
+ 
+ 
 def _substitute_prompt(template: Any, prompt: str) -> Any:
     """Single-turn convenience wrapper — unchanged behavior from Phase 1,
     still used by send(). {history} is simply left untouched if a
     single-turn template happens to contain it.
     """
     return _substitute_placeholders(template, {"prompt": prompt})
-
-
+ 
+ 
 def _extract_path(data: Any, path: str) -> Any:
     """Pull a value out of a nested response using a dotted path, e.g.
     "data.reply" or "choices.0.message.content" (numeric segments index
@@ -74,8 +74,8 @@ def _extract_path(data: Any, path: str) -> Any:
         else:
             current = current[segment]
     return current
-
-
+ 
+ 
 class HTTPAdapter(TargetAdapter):
     def __init__(
         self,
@@ -84,14 +84,16 @@ class HTTPAdapter(TargetAdapter):
         response_path: str,
         headers: dict | None = None,
         timeout: int = DEFAULT_TIMEOUT_SECONDS,
+        tool_calls_path: str | None = None,
     ):
         self.url = url
         self.request_template = request_template
         self.response_path = response_path
         self.headers = headers or {}
         self.timeout = timeout
+        self.tool_calls_path = tool_calls_path
         self.label = url
-
+ 
     def _post(self, body: dict) -> TargetResponse:
         """Shared request/response handling for both send() and
         send_conversation() — one place that knows how to talk to the
@@ -104,21 +106,21 @@ class HTTPAdapter(TargetAdapter):
         except requests.RequestException as exc:
             logger.warning("HTTP request to %s failed: %s", self.url, exc)
             return TargetResponse(text="", error=f"Request failed: {exc}")
-
+ 
         if resp.status_code >= 400:
             logger.warning("Target %s returned HTTP %d", self.url, resp.status_code)
             return TargetResponse(
                 text="",
                 error=f"Target returned HTTP {resp.status_code}: {resp.text[:200]}",
             )
-
+ 
         try:
             response_json = resp.json()
         except ValueError:
             return TargetResponse(
                 text="", error=f"Target response was not valid JSON: {resp.text[:200]}"
             )
-
+ 
         try:
             extracted = _extract_path(response_json, self.response_path)
         except (KeyError, IndexError, TypeError) as exc:
@@ -129,15 +131,20 @@ class HTTPAdapter(TargetAdapter):
                     f"target's response shape: {exc}"
                 ),
             )
-
-        return TargetResponse(text=str(extracted), raw_metadata={"raw_response": response_json})
-
-
+ 
+        raw_metadata = {"raw_response": response_json}
+        if self.tool_calls_path:
+            try:
+                raw_metadata["tool_calls"] = _extract_path(response_json, self.tool_calls_path)
+            except (KeyError, IndexError, TypeError):
+                pass
+ 
+        return TargetResponse(text=str(extracted), raw_metadata=raw_metadata)
+ 
     def send(self, prompt: str) -> TargetResponse:
         body = _substitute_prompt(self.request_template, prompt)
         return self._post(body)
-
-
+ 
     def send_conversation(self, turns: list[str]) -> list[TargetResponse]:
         """Replays `turns` against the endpoint, injecting a flattened
         text transcript of prior turns into any {history} placeholder in
@@ -151,17 +158,17 @@ class HTTPAdapter(TargetAdapter):
         """
         responses: list[TargetResponse] = []
         history_transcript = ""
-
+ 
         for turn in turns:
             body = _substitute_placeholders(
                 self.request_template, {"prompt": turn, "history": history_transcript}
             )
             response = self._post(body)
             responses.append(response)
-
+ 
             if response.error:
                 break
-
+ 
             history_transcript += f"User: {turn}\nAssistant: {response.text}\n\n"
-
+ 
         return responses

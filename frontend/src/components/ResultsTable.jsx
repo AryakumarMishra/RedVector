@@ -1,139 +1,100 @@
 import { useState } from "react";
-import Icon from "./Icon";
-import { categoryLabel } from "../theme";
+import { suggestRemediation } from "../api";
 
-function VerdictBadge({ vulnerable }) {
+const CATEGORY_LABELS = {
+  prompt_injection: "Prompt Injection",
+  jailbreak: "Jailbreak",
+  rag_poisoning: "RAG Poisoning",
+  system_prompt_leakage: "System Prompt Leakage",
+  sensitive_info_disclosure: "Sensitive Info Disclosure",
+  improper_output_handling: "Improper Output Handling",
+  unbounded_consumption: "Unbounded Consumption",
+  agent_goal_hijack: "Agent Goal Hijack",
+  tool_misuse: "Tool Misuse",
+  escalating_jailbreak: "Escalating Jailbreak",
+  context_poisoning: "Context Poisoning",
+};
+
+function Badge({ vulnerable }) {
   return (
-    <span className={`badge ${vulnerable ? "badge-vulnerable" : "badge-resisted"}`}>
-      <span className="badge-dot" />
+    <span
+      style={{
+        padding: "3px 10px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        background: vulnerable ? "#4c1d1d" : "#12331f",
+        color: vulnerable ? "#f87171" : "#4ade80",
+      }}
+    >
       {vulnerable ? "Vulnerable" : "Resisted"}
     </span>
   );
 }
 
-function FindingDetail({ result }) {
-  const signals = [
-    {
-      label: "Relevance",
-      color: result.relevance_score != null ? "#60A5FA" : "#6B7280",
-      value:
-        result.relevance_score != null
-          ? `${result.relevance_score.toFixed(2)}`
-          : "n/a",
-    },
-    {
-      label: "Refusal",
-      color:
-        result.refusal_detected == null
-          ? "#6B7280"
-          : result.refusal_detected
-            ? "#22C55E"
-            : "#F97316",
-      value:
-        result.refusal_detected == null
-          ? "n/a"
-          : result.refusal_detected
-            ? "detected"
-            : "none",
-    },
-    {
-      label: "Judge",
-      color:
-        result.judge_followed_injection == null
-          ? "#6B7280"
-          : result.judge_followed_injection
-            ? "#EF4444"
-            : "#22C55E",
-      value:
-        result.judge_followed_injection == null
-          ? "n/a"
-          : result.judge_followed_injection
-            ? "followed injection"
-            : "resisted injection",
-    },
-  ];
+function RemediationPanel({ result }) {
+  const [state, setState] = useState("idle"); // idle | loading | done
+  const [suggestion, setSuggestion] = useState(null);
+
+  async function handleClick() {
+    setState("loading");
+    try {
+      const res = await suggestRemediation({
+        category: result.category,
+        prompt: result.prompt,
+        response: result.response,
+        evidence: result.evidence,
+      });
+      setSuggestion(res);
+    } catch (err) {
+      setSuggestion({ error: err.message, disclaimer: "" });
+    } finally {
+      setState("done");
+    }
+  }
+
+  if (state === "idle") {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleClick();
+        }}
+        style={suggestButton}
+      >
+        Suggest fix
+      </button>
+    );
+  }
+
+  if (state === "loading") {
+    return <div style={{ fontSize: 13, color: "#9a9aa2" }}>Drafting a suggestion…</div>;
+  }
 
   return (
-    <div className="finding-detail">
-      <div className="detail-block">
-        <div className="detail-block-head">
-          <Icon name="terminal" size={12} />
-          Attack input
+    <div style={remediationBox}>
+      {suggestion.error || !suggestion.suggestion ? (
+        <div style={{ fontSize: 13, color: "#f87171" }}>
+          Couldn't generate a suggestion: {suggestion.error || "no suggestion returned"}
         </div>
-        <pre className="code-block">{result.prompt}</pre>
-      </div>
-
-      <div className="detail-block">
-        <div className="detail-block-head">
-          <Icon name="externalLink" size={12} />
-          Model response
-        </div>
-        <pre className="code-block">{result.response}</pre>
-      </div>
-
-      <div className="detail-block">
-        <div className="detail-block-head">
-          <span className="head-accent">
-            <Icon name={result.vulnerable ? "alertTriangle" : "check"} size={12} />
-          </span>
-          {result.vulnerable
-            ? "Why this was classified as vulnerable"
-            : "Why this was classified as resisted"}
-        </div>
-        <div className="evidence-line">
-          <Icon name="search" size={14} />
-          <span>
-            <strong>Detection:</strong> {result.evidence}
-          </span>
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <div className="signal-row">
-            {signals.map((s) => (
-              <span key={s.label} className="signal-chip">
-                <span className="signal-dot" style={{ background: s.color }} />
-                {s.label}: {s.value}
-              </span>
-            ))}
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>
+            SUGGESTED SYSTEM-PROMPT ADDITION
           </div>
-        </div>
-      </div>
-
-      {result.judge_reasoning && (
-        <div className="detail-block">
-          <div className="detail-block-head">
-            <Icon name="activity" size={12} />
-            Judge reasoning
-          </div>
-          <div className="code-block" style={{ color: "#E9EBEF" }}>
-            {result.judge_reasoning}
-          </div>
-        </div>
-      )}
-
-      {result.multiturn && result.turns && result.turns.length > 0 && (
-        <div className="detail-block">
-          <div className="detail-block-head">
-            <Icon name="history" size={12} />
-            Conversation turns
-          </div>
-          {result.turns.map((turn, i) => (
-            <div key={i} style={{ marginBottom: i < result.turns.length - 1 ? 10 : 0 }}>
-              <div className="field-hint" style={{ marginBottom: 4 }}>
-                Turn {i + 1} — attack input
-              </div>
-              <pre className="code-block">{turn}</pre>
-              {result.responses && result.responses[i] != null && (
-                <pre
-                  className="code-block"
-                  style={{ marginTop: 6, borderLeft: "2px solid #343A46" }}
-                >
-                  {result.responses[i]}
-                </pre>
-              )}
+          <pre style={pre}>{suggestion.suggestion}</pre>
+          {suggestion.rationale && (
+            <div style={{ fontSize: 13, color: "#d4d4d8", marginTop: 8 }}>
+              {suggestion.rationale}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
+      {/* Advisory framing is part of the UI itself, not just docs — this
+          banner always renders alongside any suggestion, success or not. */}
+      <div style={disclaimerBanner}>
+        ⚠ {suggestion.disclaimer || "This is an automated suggestion, not a guaranteed fix."}
+      </div>
     </div>
   );
 }
@@ -141,58 +102,87 @@ function FindingDetail({ result }) {
 function ResultRow({ result }) {
   const [expanded, setExpanded] = useState(false);
 
-  function toggle() {
-    setExpanded((e) => !e);
-  }
-
   return (
     <>
       <tr
-        className={`row-main${result.vulnerable ? " vulnerable" : ""}`}
-        onClick={toggle}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggle();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        aria-controls={`detail-${result.payload_id}`}
+        onClick={() => setExpanded((e) => !e)}
+        style={{ cursor: "pointer", borderBottom: "1px solid #26262a" }}
       >
-        <td className="cell-category">
-          <span className="cat-dot" style={{ background: "#4B5563" }} />
-          {categoryLabel(result.category)}
+        <td style={{ padding: "10px 12px", color: "#9a9aa2", fontSize: 13 }}>
+          {CATEGORY_LABELS[result.category] || result.category}
         </td>
-        <td className="cell-payload" title={result.payload_id}>
-          {result.payload_id}
+        <td style={{ padding: "10px 12px", fontSize: 13 }}>{result.payload_id}</td>
+        <td style={{ padding: "10px 12px" }}>
+          <Badge vulnerable={result.vulnerable} />
         </td>
-        <td>
-          <VerdictBadge vulnerable={result.vulnerable} />
+        <td style={{ padding: "10px 12px", fontSize: 13, color: "#9a9aa2" }}>
+          {result.confidence != null ? result.confidence.toFixed(2) : "—"}
         </td>
-        <td className="cell-num">{Math.round(result.confidence * 100)}%</td>
-        <td className="cell-num">
-          {result.relevance_score != null
-            ? result.relevance_score.toFixed(2)
-            : "—"}
+        <td style={{ padding: "10px 12px", fontSize: 13, color: "#9a9aa2" }}>
+          {result.relevance_score != null ? result.relevance_score.toFixed(2) : "—"}
         </td>
-        <td className="cell-toggle">
-          <span
-            className={`expand-toggle${expanded ? " open" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggle();
-            }}
-          >
-            <Icon name="chevronDown" size={14} />
-          </span>
+        <td style={{ padding: "10px 12px", fontSize: 18, color: "#666", textAlign: "center" }}>
+          {expanded ? "−" : "+"}
         </td>
       </tr>
       {expanded && (
-        <tr id={`detail-${result.payload_id}`}>
-          <td className="expanded-cell" colSpan={6}>
-            <FindingDetail result={result} />
+        <tr style={{ borderBottom: "1px solid #26262a" }}>
+          <td colSpan={6} style={{ padding: "14px 16px", background: "#18181b" }}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>PROMPT</div>
+              <pre style={pre}>{result.prompt}</pre>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>RESPONSE</div>
+              <pre style={pre}>{result.response}</pre>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>EVIDENCE</div>
+              <div style={{ fontSize: 13 }}>{result.evidence}</div>
+            </div>
+            {result.judge_reasoning && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>
+                  JUDGE VERDICT
+                  {result.judge_followed_injection != null &&
+                    ` (${result.judge_followed_injection ? "followed injection" : "did not follow"})`}
+                </div>
+                <div style={{ fontSize: 13 }}>{result.judge_reasoning}</div>
+              </div>
+            )}
+            {result.multiturn && result.turns && result.turns.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>
+                  CONVERSATION TURNS
+                </div>
+                {result.turns.map((turn, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 4 }}>
+                      Turn {i + 1} — attack input
+                    </div>
+                    <pre style={pre}>{turn}</pre>
+                    {result.responses && result.responses[i] != null && (
+                      <>
+                        <div
+                          style={{ fontSize: 12, color: "#9a9aa2", margin: "6px 0 4px" }}
+                        >
+                          Turn {i + 1} — model response
+                        </div>
+                        <pre style={pre}>{result.responses[i]}</pre>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {result.vulnerable && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <div style={{ fontSize: 12, color: "#9a9aa2", marginBottom: 6 }}>
+                  REMEDIATION (v2 Phase 5)
+                </div>
+                <RemediationPanel result={result} />
+              </div>
+            )}
           </td>
         </tr>
       )}
@@ -200,28 +190,74 @@ function ResultRow({ result }) {
   );
 }
 
+const pre = {
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+  fontSize: 13,
+  fontFamily: "ui-monospace, monospace",
+  background: "#111113",
+  padding: "8px 10px",
+  borderRadius: 6,
+  margin: 0,
+  color: "#d4d4d8",
+};
+
+const suggestButton = {
+  padding: "6px 14px",
+  borderRadius: 8,
+  border: "1px solid #333",
+  background: "#232327",
+  color: "#e8e8ea",
+  fontSize: 13,
+  cursor: "pointer",
+};
+
+const remediationBox = {
+  border: "1px solid #26262a",
+  borderRadius: 8,
+  padding: 12,
+  background: "#141416",
+};
+
+const disclaimerBanner = {
+  marginTop: 10,
+  padding: "8px 10px",
+  borderRadius: 6,
+  background: "#3a2a0f",
+  color: "#facc85",
+  fontSize: 12,
+  lineHeight: 1.4,
+};
+
 export default function ResultsTable({ results }) {
   return (
-    <div className="results-wrap">
-      <div className="results-scroll">
-        <table className="results-table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Payload</th>
-              <th>Verdict</th>
-              <th>Confidence</th>
-              <th>Relevance</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r) => (
-              <ResultRow key={r.payload_id} result={r} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div style={{ overflowX: "auto", border: "1px solid #26262a", borderRadius: 10 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid #26262a", textAlign: "left" }}>
+            <th style={th}>Category</th>
+            <th style={th}>Payload</th>
+            <th style={th}>Verdict</th>
+            <th style={th}>Confidence</th>
+            <th style={th}>Relevance</th>
+            <th style={th}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r) => (
+            <ResultRow key={r.payload_id} result={r} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
+
+const th = {
+  padding: "10px 12px",
+  fontSize: 12,
+  color: "#9a9aa2",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: 0.4,
+};

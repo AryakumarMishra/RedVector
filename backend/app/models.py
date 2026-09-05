@@ -65,3 +65,21 @@ class CampaignResponse(BaseModel):
     target_label: str  # a model string (litellm target) or endpoint URL (http target)
     results: list[ResultOut]
     scores: list[CategoryScore]
+
+
+class RemediationRequest(BaseModel):
+    """Takes the vulnerability data directly rather than a campaign/payload
+    ID lookup — the frontend already has this data in hand from a
+    displayed result row, so no extra round-trip to re-fetch it is needed."""
+
+    category: str
+    prompt: str
+    response: str
+    evidence: str
+
+
+class RemediationResponse(BaseModel):
+    suggestion: str | None
+    rationale: str | None
+    disclaimer: str
+    error: str | None = None

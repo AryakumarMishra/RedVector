@@ -24,6 +24,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
  
 from app import db, orchestrator
+from app.attacks.agent_goal_hijack import AgentGoalHijackAttack
 from app.attacks.base import AttackResult
 from app.attacks.context_poisoning import ContextPoisoningAttack
 from app.attacks.escalating_jailbreak import EscalatingJailbreakAttack
@@ -33,6 +34,7 @@ from app.attacks.prompt_injection import PromptInjectionAttack
 from app.attacks.rag_poisoning import RagPoisoningAttack
 from app.attacks.sensitive_info_disclosure import SensitiveInfoDisclosureAttack
 from app.attacks.system_prompt_leakage import SystemPromptLeakageAttack
+from app.attacks.tool_misuse import ToolMisuseAttack
 from app.attacks.unbounded_consumption import UnboundedConsumptionAttack
 from app.models import (
     CampaignRequest,
@@ -40,8 +42,11 @@ from app.models import (
     CampaignSummary,
     CategoryScore,
     MultiTurnCampaignRequest,
+    RemediationRequest,
+    RemediationResponse,
     ResultOut,
 )
+from app import remediation
 from app.targets import build_target_adapter
  
 logging.basicConfig(level=logging.INFO)
@@ -73,8 +78,9 @@ ATTACK_REGISTRY = {
     "sensitive_info_disclosure": SensitiveInfoDisclosureAttack(),
     "improper_output_handling": ImproperOutputHandlingAttack(),
     "unbounded_consumption": UnboundedConsumptionAttack(),
+    "agent_goal_hijack": AgentGoalHijackAttack(),
+    "tool_misuse": ToolMisuseAttack(),
 }
-
 
 MULTITURN_ATTACK_REGISTRY = {
     "escalating_jailbreak": EscalatingJailbreakAttack(),
@@ -229,6 +235,28 @@ def create_multiturn_campaign(req: MultiTurnCampaignRequest) -> CampaignResponse
         target_label=target.label,
         results=[_attack_result_to_result_out(r) for r in results],
         scores=[CategoryScore(**s) for s in scores],
+    )
+ 
+ 
+@app.post("/remediate", response_model=RemediationResponse)
+def create_remediation_suggestion(req: RemediationRequest) -> RemediationResponse:
+    """Suggests a system-prompt hardening addition for one
+    vulnerability — advisory only, see app/remediation.py's module
+    docstring for why this never auto-applies anything. The disclaimer
+    field is always populated, success or failure, so a UI built around
+    this can't accidentally render a suggestion without it.
+    """
+    result = remediation.suggest_remediation(
+        category=req.category,
+        prompt=req.prompt,
+        response=req.response,
+        evidence=req.evidence,
+    )
+    return RemediationResponse(
+        suggestion=result.suggestion,
+        rationale=result.rationale,
+        disclaimer=result.disclaimer,
+        error=result.error,
     )
  
  

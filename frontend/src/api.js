@@ -46,6 +46,15 @@ export async function multiturnCampaign(payload) {
   return handleResponse(res);
 }
 
+export async function suggestRemediation({ category, prompt, response, evidence }) {
+  const res = await fetch(`${API_BASE}/remediate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category, prompt, response, evidence }),
+  });
+  return handleResponse(res);
+}
+
 export async function getHealth() {
   const res = await fetch(`${API_BASE}/health`);
   return handleResponse(res);

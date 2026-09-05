@@ -43,6 +43,8 @@ export const CATEGORY_LABELS = {
   sensitive_info_disclosure: "Sensitive Information Disclosure",
   improper_output_handling: "Improper Output Handling",
   unbounded_consumption: "Unbounded Consumption",
+  agent_goal_hijack: "Agent Goal Hijack",
+  tool_misuse: "Tool Misuse",
 };
 
 export function categoryLabel(key) {
