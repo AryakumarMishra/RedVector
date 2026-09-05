@@ -1,12 +1,14 @@
 """
 Base contract for all RedVector attack modules.
 
-Every attack (prompt injection, jailbreak, RAG poisoning, ...) subclasses `Attack` and implements two things:
+Every attack (prompt injection, jailbreak, RAG poisoning, ...) subclasses
+`Attack` and implements two things:
 
   - generate_payloads(): produce the list of test cases to run
   - evaluate(): decide whether a given response means the attack succeeded
 
-This is deliberately data-driven: payloads live in YAML files under `payloads/`, not hardcoded in Python, so growing the attack library later
+This is deliberately data-driven: payloads live in YAML files under
+`payloads/`, not hardcoded in Python, so growing the attack library later
 is a content problem, not a code problem.
 """
 
@@ -22,8 +24,6 @@ class Payload:
     id: str
     category: str
     prompt: str
-    # What "success" looks like from the attacker's point of view, e.g. a marker string the model should never say, 
-    # or a behavior it should never perform. Used by evaluate() to score the response.
     target_behavior: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -53,8 +53,21 @@ class Attack(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def evaluate(self, payload: Payload, response: str) -> AttackResult:
-        """Score a single response against a single payload."""
+    def evaluate(
+        self, payload: Payload, response: str, raw_metadata: dict[str, Any] | None = None
+    ) -> AttackResult:
+        """Score a single response against a single payload.
+
+        `raw_metadata` is whatever extra info the TargetAdapter reported
+        alongside the response text (see targets/base.py's TargetResponse) —
+        most attacks ignore it entirely and only look at `response`, which
+        is exactly why it's optional with a default. It exists for attacks
+        that need more than plain text to evaluate, e.g. checking which
+        tools an agent actually invoked (v2 Phase 4's ToolMisuseAttack) —
+        without this, an attack module would have no way to see that
+        information at all, since the orchestrator previously discarded
+        everything except the response text before calling evaluate().
+        """
         raise NotImplementedError
 
 
